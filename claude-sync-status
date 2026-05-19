@@ -79,20 +79,26 @@ fi
 
 echo ""
 
-# Show conversation count
-if [ -d "$CLAUDE_DIR/projects" ]; then
-    PROJECT_COUNT=$(find "$CLAUDE_DIR/projects" -name "*.jsonl" 2>/dev/null | wc -l)
-    echo "Local conversations: $PROJECT_COUNT"
-else
-    echo "Local conversations: 0 (Claude Code not used yet)"
-fi
+# Show conversation count per profile
+parse_profiles
+for profile in "${SYNC_PROFILES[@]}"; do
+    SUBDIR="$(profile_subdir "$profile")"
+    echo "Profile: $profile (repo subdir: $SUBDIR/)"
 
-if [ -d "$REPO_DIR/projects" ]; then
-    SYNCED_COUNT=$(find "$REPO_DIR/projects" -name "*.jsonl" 2>/dev/null | wc -l)
-    echo "Synced conversations: $SYNCED_COUNT"
-else
-    echo "Synced conversations: 0"
-fi
+    if [ -d "$profile/projects" ]; then
+        LOCAL_COUNT=$(find "$profile/projects" -name "*.jsonl" 2>/dev/null | wc -l)
+        echo "  Local conversations: $LOCAL_COUNT"
+    else
+        echo "  Local conversations: 0 (data dir not present)"
+    fi
+
+    if [ -d "$REPO_DIR/$SUBDIR/projects" ]; then
+        SYNCED_COUNT=$(find "$REPO_DIR/$SUBDIR/projects" -name "*.jsonl" 2>/dev/null | wc -l)
+        echo "  Synced conversations: $SYNCED_COUNT"
+    else
+        echo "  Synced conversations: 0"
+    fi
+done
 
 echo ""
 echo "Commands:"

@@ -1,12 +1,10 @@
 #!/bin/bash
 # Claude Code Conversation Sync - Pull
-# Syncs conversations from remote repo to ~/.claude
+# Syncs conversations from the repo into each configured profile dir.
 
 set -e
 
-# Save original directory to return to it at the end
 ORIGINAL_DIR="$(pwd)"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load configuration
@@ -20,12 +18,10 @@ fi
 
 load_config "$SCRIPT_DIR"
 
-CLAUDE_DIR="$CLAUDE_DATA_DIR"
 REPO_DIR="$SCRIPT_DIR/conversations"
 
 echo "=== Claude Code Conversation Sync - Pull ==="
-echo "Syncing from: $REPO_DIR"
-echo "Syncing to: $CLAUDE_DIR"
+echo "Repo: $REPO_DIR"
 echo ""
 
 log_verbose "Using branch: $CLAUDE_SYNC_BRANCH"
@@ -65,53 +61,63 @@ fi
 
 cd "$SCRIPT_DIR"
 
-# Create Claude directory if it doesn't exist
-mkdir -p "$CLAUDE_DIR"
-
-# Sync with rsync (preserves newer files)
-echo ""
-echo "Syncing conversations to $CLAUDE_DIR..."
-
-# Sync projects
-if [ -d "$REPO_DIR/projects" ]; then
-    echo "Syncing project conversations..."
-    rsync -av --update "$REPO_DIR/projects/" "$CLAUDE_DIR/projects/"
+# Populate SYNC_PROFILES
+parse_profiles
+if [ "${#SYNC_PROFILES[@]}" -eq 0 ]; then
+    echo "Error: No sync profiles configured."
+    cd "$ORIGINAL_DIR"
+    exit 1
 fi
 
-# Sync file-history
-if [ -d "$REPO_DIR/file-history" ]; then
-    echo "Syncing file history..."
-    rsync -av --update "$REPO_DIR/file-history/" "$CLAUDE_DIR/file-history/"
-fi
+# Sync each profile
+for profile in "${SYNC_PROFILES[@]}"; do
+    SUBDIR="$(profile_subdir "$profile")"
+    SRC="$REPO_DIR/$SUBDIR"
 
-# Sync todos
-if [ -d "$REPO_DIR/todos" ]; then
-    echo "Syncing todos..."
-    rsync -av --update "$REPO_DIR/todos/" "$CLAUDE_DIR/todos/"
-fi
+    echo ""
+    echo "--- Profile: $SUBDIR/ -> $profile ---"
 
-# Sync global history (merge, don't overwrite)
-if [ -f "$REPO_DIR/history.jsonl" ]; then
-    echo "Syncing global history..."
-    if [ -f "$CLAUDE_DIR/history.jsonl" ]; then
-        # Merge history files (keep both, sort by timestamp)
-        cat "$CLAUDE_DIR/history.jsonl" "$REPO_DIR/history.jsonl" | \
-            sort -u > "$CLAUDE_DIR/history.jsonl.tmp"
-        mv "$CLAUDE_DIR/history.jsonl.tmp" "$CLAUDE_DIR/history.jsonl"
-    else
-        cp "$REPO_DIR/history.jsonl" "$CLAUDE_DIR/history.jsonl"
+    if [ ! -d "$SRC" ]; then
+        echo "No data in repo for this profile yet. Skipping."
+        continue
     fi
-fi
 
-# Set correct permissions
-chmod -R u+rwX,go-rwx "$CLAUDE_DIR/projects" 2>/dev/null || true
-chmod -R u+rwX,go-rwx "$CLAUDE_DIR/file-history" 2>/dev/null || true
-chmod -R u+rwX,go-rwx "$CLAUDE_DIR/todos" 2>/dev/null || true
+    mkdir -p "$profile"
+
+    if [ -d "$SRC/projects" ]; then
+        echo "Syncing project conversations..."
+        rsync -av --update "$SRC/projects/" "$profile/projects/"
+    fi
+
+    if [ -d "$SRC/file-history" ]; then
+        echo "Syncing file history..."
+        rsync -av --update "$SRC/file-history/" "$profile/file-history/"
+    fi
+
+    if [ -d "$SRC/todos" ]; then
+        echo "Syncing todos..."
+        rsync -av --update "$SRC/todos/" "$profile/todos/"
+    fi
+
+    if [ -f "$SRC/history.jsonl" ]; then
+        echo "Syncing global history..."
+        if [ -f "$profile/history.jsonl" ]; then
+            cat "$profile/history.jsonl" "$SRC/history.jsonl" | \
+                sort -u > "$profile/history.jsonl.tmp"
+            mv "$profile/history.jsonl.tmp" "$profile/history.jsonl"
+        else
+            cp "$SRC/history.jsonl" "$profile/history.jsonl"
+        fi
+    fi
+
+    chmod -R u+rwX,go-rwx "$profile/projects" 2>/dev/null || true
+    chmod -R u+rwX,go-rwx "$profile/file-history" 2>/dev/null || true
+    chmod -R u+rwX,go-rwx "$profile/todos" 2>/dev/null || true
+done
 
 echo ""
 echo "Sync complete!"
 echo ""
 echo "Note: Restart Claude Code to see the synced conversations."
 
-# Return to original directory
 cd "$ORIGINAL_DIR"
