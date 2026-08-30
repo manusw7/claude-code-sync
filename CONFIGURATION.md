@@ -45,6 +45,9 @@ Settings are loaded in this priority order (highest to lowest):
 - `CLAUDE_BACKUP_RETENTION_DAYS` - Auto-cleanup old backups (default: `30`)
 - `CLAUDE_DATA_DIR` - Claude data directory (default: `$HOME/.claude`)
 - `CLAUDE_SYNC_VERBOSE` - Verbose output (default: `false`)
+- `CLAUDE_SYNC_PROFILES` - Semicolon-separated list of extra Claude data dirs to sync (default: `CLAUDE_DATA_DIR`)
+- `CODEX_DATA_DIR` - Codex CLI data directory (default: `$HOME/.codex`)
+- `CLAUDE_SYNC_CODEX_PROFILES` - Semicolon-separated list of Codex CLI data dirs to sync (default: empty, opt-in)
 
 ## Examples
 
@@ -73,7 +76,16 @@ CLAUDE_DATA_DIR="/opt/claude-data"
 CLAUDE_BACKUP_RETENTION_DAYS="60"
 ```
 
-### Example 4: Using Environment Variables
+### Example 4: Also Syncing Codex CLI
+
+```bash
+CLAUDE_SYNC_REMOTE="git@github.com:myuser/claude-sync.git"
+CLAUDE_SYNC_CODEX_PROFILES="$HOME/.codex"
+```
+
+Only Codex's `sessions/`, `history.jsonl`, and `session_index.jsonl` are synced — never `auth.json` or the `*.sqlite` state files. See [README.md](README.md#-codex-cli-sync-optional) for why.
+
+### Example 5: Using Environment Variables
 
 Temporary override for testing:
 ```bash

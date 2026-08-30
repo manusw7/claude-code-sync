@@ -33,3 +33,20 @@ CLAUDE_SYNC_VERBOSE="${CLAUDE_SYNC_VERBOSE:-false}"
 # Auto-commit message template
 # Available variables: {date}, {time}, {hostname}
 CLAUDE_SYNC_COMMIT_MSG="${CLAUDE_SYNC_COMMIT_MSG:-Sync conversations - {date} {time} - {hostname}}"
+
+# Semicolon-separated list of Claude data dirs to sync, e.g. when you run
+# more than one Claude Code profile on the same machine. Each is stored
+# under conversations/<basename>/ in the repo. Defaults to CLAUDE_DATA_DIR.
+# Example: CLAUDE_SYNC_PROFILES="$HOME/.claude;$HOME/.claude-work"
+CLAUDE_SYNC_PROFILES="${CLAUDE_SYNC_PROFILES:-}"
+
+# Codex CLI data directory (usually ~/.codex)
+CODEX_DATA_DIR="${CODEX_DATA_DIR:-$HOME/.codex}"
+
+# Semicolon-separated list of Codex data dirs to sync, same idea as
+# CLAUDE_SYNC_PROFILES. Leave empty to skip Codex sync entirely - this is
+# opt-in, since not everyone using this tool has Codex CLI installed. Only
+# sessions/, history.jsonl and session_index.jsonl are synced: auth.json,
+# the *.sqlite state/queue/cache files and config.toml are never touched.
+# Example: CLAUDE_SYNC_CODEX_PROFILES="$HOME/.codex"
+CLAUDE_SYNC_CODEX_PROFILES="${CLAUDE_SYNC_CODEX_PROFILES:-}"

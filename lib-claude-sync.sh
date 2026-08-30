@@ -19,6 +19,13 @@ load_config() {
     # CLAUDE_DATA_DIR for backward compatibility.
     CLAUDE_SYNC_PROFILES="${CLAUDE_SYNC_PROFILES:-}"
 
+    # Codex CLI data directory (usually ~/.codex)
+    CODEX_DATA_DIR="${CODEX_DATA_DIR:-$HOME/.codex}"
+    # Semicolon-separated list of Codex data dirs to sync, same idea as
+    # CLAUDE_SYNC_PROFILES. Empty by default: Codex sync is opt-in, since not
+    # everyone running this tool has Codex CLI installed.
+    CLAUDE_SYNC_CODEX_PROFILES="${CLAUDE_SYNC_CODEX_PROFILES:-}"
+
     # Load shared config if exists (won't override env vars due to ${:-} syntax)
     if [ -f "$SCRIPT_DIR/.claude-sync-config" ]; then
         source "$SCRIPT_DIR/.claude-sync-config"
@@ -46,6 +53,20 @@ parse_profiles() {
         entry="${entry#"${entry%%[![:space:]]*}"}"
         entry="${entry%"${entry##*[![:space:]]}"}"
         [ -n "$entry" ] && SYNC_PROFILES+=("$entry")
+    done
+}
+
+# Parse CLAUDE_SYNC_CODEX_PROFILES into the global array CODEX_SYNC_PROFILES.
+# Same format and trimming rules as parse_profiles(). Left empty when Codex
+# sync isn't configured, so callers can just iterate an empty array.
+parse_codex_profiles() {
+    CODEX_SYNC_PROFILES=()
+    local IFS=';'
+    local entry
+    for entry in $CLAUDE_SYNC_CODEX_PROFILES; do
+        entry="${entry#"${entry%%[![:space:]]*}"}"
+        entry="${entry%"${entry##*[![:space:]]}"}"
+        [ -n "$entry" ] && CODEX_SYNC_PROFILES+=("$entry")
     done
 }
 
@@ -87,6 +108,17 @@ validate_config() {
         done
     fi
 
+    # Codex profiles are optional: only validate the ones the user configured.
+    parse_codex_profiles
+    local codex_profile
+    for codex_profile in "${CODEX_SYNC_PROFILES[@]}"; do
+        if [ ! -d "$codex_profile" ]; then
+            echo "Error: Codex profile data directory not found: $codex_profile"
+            echo ""
+            errors=1
+        fi
+    done
+
     return $errors
 }
 
@@ -103,6 +135,15 @@ show_config() {
     for profile in "${SYNC_PROFILES[@]}"; do
         echo "    - $profile -> conversations/$(profile_subdir "$profile")"
     done
+    parse_codex_profiles
+    if [ "${#CODEX_SYNC_PROFILES[@]}" -gt 0 ]; then
+        echo "  Codex sync profiles:"
+        for profile in "${CODEX_SYNC_PROFILES[@]}"; do
+            echo "    - $profile -> conversations/$(profile_subdir "$profile")"
+        done
+    else
+        echo "  Codex sync profiles: none configured"
+    fi
     echo "  Backup retention: $CLAUDE_BACKUP_RETENTION_DAYS days"
 }
 

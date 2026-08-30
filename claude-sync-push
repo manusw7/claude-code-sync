@@ -93,6 +93,36 @@ for profile in "${SYNC_PROFILES[@]}"; do
     echo ""
 done
 
+# Sync each Codex profile (populated by validate_config above).
+# Only sessions/, history.jsonl and session_index.jsonl are touched: those are
+# the parts that are one-file-per-conversation and merge safely with rsync.
+# auth.json, the *.sqlite state/queue/cache files, logs and config.toml are
+# deliberately left alone (see CLAUDE.md).
+for profile in "${CODEX_SYNC_PROFILES[@]}"; do
+    SUBDIR="$(profile_subdir "$profile")"
+    DEST="$REPO_DIR/$SUBDIR"
+
+    echo "--- Codex profile: $profile -> $SUBDIR/ ---"
+    mkdir -p "$DEST/sessions"
+
+    if [ -d "$profile/sessions" ]; then
+        echo "Merging sessions..."
+        rsync -av --update "$profile/sessions/" "$DEST/sessions/"
+    fi
+
+    if [ -f "$profile/history.jsonl" ]; then
+        echo "Syncing history..."
+        cp "$profile/history.jsonl" "$DEST/history.jsonl"
+    fi
+
+    if [ -f "$profile/session_index.jsonl" ]; then
+        echo "Syncing session index..."
+        cp "$profile/session_index.jsonl" "$DEST/session_index.jsonl"
+    fi
+
+    echo ""
+done
+
 # Check if there are changes
 if [ -z "$(git status --porcelain)" ]; then
     echo "No changes to sync."

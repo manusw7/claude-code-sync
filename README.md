@@ -177,6 +177,27 @@ Conversations **accumulate** across all machines:
 
 If you need to move a project, use `claude-migrate-project` to update the conversation paths (see Utilities below).
 
+### 🤖 Codex CLI Sync (optional)
+
+`claude-sync-push` and `claude-sync-pull` can also sync [Codex CLI](https://developers.openai.com/codex/cli) conversations, alongside Claude Code's, using the same two commands.
+
+Enable it by setting `CLAUDE_SYNC_CODEX_PROFILES` (semicolon-separated Codex data dirs, same format as `CLAUDE_SYNC_PROFILES`):
+
+```bash
+# .claude-sync-config.local
+CLAUDE_SYNC_CODEX_PROFILES="$HOME/.codex"
+```
+
+It's opt-in and empty by default — nothing changes for machines that don't set it.
+
+Only `sessions/`, `history.jsonl`, and `session_index.jsonl` are synced. These are the parts of `~/.codex` that are one file per conversation and merge safely with `rsync --update`, the same strategy this tool already uses for Claude Code's `projects/`. Everything else is deliberately left untouched:
+
+- `auth.json` — Codex credentials, never synced (same reasoning as `.credentials.json` for Claude)
+- `*.sqlite`, `*.sqlite-shm`, `*.sqlite-wal` — Codex's live state/queue/log databases. These aren't per-conversation files, so a two-machine merge can't safely reconcile them — copying the newer file would just discard the other machine's local state instead of merging it. They're also large and grow constantly, which would bloat the git repo on every push.
+- `cache/`, `log/`, `tmp/`, `shell_snapshots/`, `plugins/`, `skills/`, `rules/`, `config.toml` — machine-local config and ephemeral data, not conversation history
+
+Codex conversations are stored under `conversations/<basename>/` in the repo, next to Claude's, so e.g. `~/.codex` lands in `conversations/.codex/`.
+
 ### 🔐 Optional Encryption
 
 Enable transparent encryption with git-crypt. See [Requirements](#installing-git-crypt-for-encryption) section for installation on your platform.
@@ -237,6 +258,8 @@ Configuration uses three layers (priority: highest to lowest):
 - `CLAUDE_BACKUP_RETENTION_DAYS` - Backup retention (default: `30`)
 - `CLAUDE_DATA_DIR` - Claude data directory (default: `~/.claude`)
 - `CLAUDE_SYNC_VERBOSE` - Verbose output (default: `false`)
+- `CLAUDE_SYNC_PROFILES` - Extra Claude data dirs to sync, semicolon-separated (default: `CLAUDE_DATA_DIR`)
+- `CLAUDE_SYNC_CODEX_PROFILES` - Codex CLI data dirs to sync, semicolon-separated (default: none — opt-in, see [Codex CLI Sync](#-codex-cli-sync-optional))
 
 See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration guide.
 
@@ -278,6 +301,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration guide.
 - `.credentials.json` (never synced)
 - Debug files
 - Local backups
+- For Codex CLI (if enabled): `auth.json`, `*.sqlite*` state/log/queue databases, `config.toml` — see [Codex CLI Sync](#-codex-cli-sync-optional)
 
 ## Security & Privacy
 

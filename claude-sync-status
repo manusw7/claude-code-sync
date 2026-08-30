@@ -100,6 +100,27 @@ for profile in "${SYNC_PROFILES[@]}"; do
     fi
 done
 
+# Show session count per Codex profile
+parse_codex_profiles
+for profile in "${CODEX_SYNC_PROFILES[@]}"; do
+    SUBDIR="$(profile_subdir "$profile")"
+    echo "Codex profile: $profile (repo subdir: $SUBDIR/)"
+
+    if [ -d "$profile/sessions" ]; then
+        LOCAL_COUNT=$(find "$profile/sessions" -name "*.jsonl" 2>/dev/null | wc -l)
+        echo "  Local sessions: $LOCAL_COUNT"
+    else
+        echo "  Local sessions: 0 (data dir not present)"
+    fi
+
+    if [ -d "$REPO_DIR/$SUBDIR/sessions" ]; then
+        SYNCED_COUNT=$(find "$REPO_DIR/$SUBDIR/sessions" -name "*.jsonl" 2>/dev/null | wc -l)
+        echo "  Synced sessions: $SYNCED_COUNT"
+    else
+        echo "  Synced sessions: 0"
+    fi
+done
+
 echo ""
 echo "Commands:"
 echo "  claude-config      - Configure sync settings"

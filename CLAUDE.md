@@ -30,6 +30,16 @@ This tool solves these problems by providing git-based sync with encryption supp
 - `claude-sync-pull` - Pulls and merges remote conversations locally
 - `claude-sync-status` - Shows configuration and sync state
 
+Both `claude-sync-push` and `claude-sync-pull` sync two kinds of profiles, each with its own subpath list because Claude Code and Codex CLI store data in different shapes:
+
+| | Claude Code (`CLAUDE_SYNC_PROFILES`) | Codex CLI (`CLAUDE_SYNC_CODEX_PROFILES`) |
+|---|---|---|
+| Synced | `projects/`, `file-history/`, `todos/`, `history.jsonl` | `sessions/`, `history.jsonl`, `session_index.jsonl` |
+| Never touched | `.credentials.json` | `auth.json`, `*.sqlite*`, `config.toml`, `cache/`, `log/`, `plugins/`, `skills/`, `rules/` |
+| Opt-in? | No — falls back to `CLAUDE_DATA_DIR` | Yes — empty by default |
+
+The Codex exclusions matter architecturally, not just for privacy: `auth.json` holds live credentials, and the `*.sqlite`/`*.sqlite-wal`/`*.sqlite-shm` files are Codex's live state/queue/log databases, not one-file-per-conversation like `sessions/`. `rsync --update` can only take "whichever whole file has the newer mtime" — for a shared SQLite file that means one machine's local state silently overwrites the other's instead of merging, which breaks the "conversations only accumulate, never get lost" guarantee this tool is built around. Only sync additional Codex subpaths here if they're genuinely one-file-per-conversation and safe to merge the same way.
+
 **Backup System**
 - `claude-backup` - Creates timestamped tar.gz backups
 - `claude-restore` - Restores from backup with safety measures
@@ -59,6 +69,8 @@ This tool solves these problems by providing git-based sync with encryption supp
 ├── todos/                   ├── todos/
 └── history.jsonl            └── history.jsonl
 ```
+
+(Simplified to one profile. In practice each configured `CLAUDE_SYNC_PROFILES` / `CLAUDE_SYNC_CODEX_PROFILES` entry gets its own `conversations/<basename>/` subdir — see the profile table above for what's synced per kind.)
 
 **Sync Strategy:**
 1. `claude-sync-init` clones from remote (or initializes fresh if empty)

@@ -115,6 +115,56 @@ for profile in "${SYNC_PROFILES[@]}"; do
     chmod -R u+rwX,go-rwx "$profile/todos" 2>/dev/null || true
 done
 
+# Populate CODEX_SYNC_PROFILES
+parse_codex_profiles
+
+# Sync each Codex profile. Mirrors the Claude profile loop above, but only
+# for the parts of ~/.codex that are safe to merge file-by-file (see
+# claude-sync-push for why auth.json/*.sqlite/config.toml are excluded).
+for profile in "${CODEX_SYNC_PROFILES[@]}"; do
+    SUBDIR="$(profile_subdir "$profile")"
+    SRC="$REPO_DIR/$SUBDIR"
+
+    echo ""
+    echo "--- Codex profile: $SUBDIR/ -> $profile ---"
+
+    if [ ! -d "$SRC" ]; then
+        echo "No data in repo for this profile yet. Skipping."
+        continue
+    fi
+
+    mkdir -p "$profile"
+
+    if [ -d "$SRC/sessions" ]; then
+        echo "Syncing sessions..."
+        rsync -av --update "$SRC/sessions/" "$profile/sessions/"
+    fi
+
+    if [ -f "$SRC/history.jsonl" ]; then
+        echo "Syncing history..."
+        if [ -f "$profile/history.jsonl" ]; then
+            cat "$profile/history.jsonl" "$SRC/history.jsonl" | \
+                sort -u > "$profile/history.jsonl.tmp"
+            mv "$profile/history.jsonl.tmp" "$profile/history.jsonl"
+        else
+            cp "$SRC/history.jsonl" "$profile/history.jsonl"
+        fi
+    fi
+
+    if [ -f "$SRC/session_index.jsonl" ]; then
+        echo "Syncing session index..."
+        if [ -f "$profile/session_index.jsonl" ]; then
+            cat "$profile/session_index.jsonl" "$SRC/session_index.jsonl" | \
+                sort -u > "$profile/session_index.jsonl.tmp"
+            mv "$profile/session_index.jsonl.tmp" "$profile/session_index.jsonl"
+        else
+            cp "$SRC/session_index.jsonl" "$profile/session_index.jsonl"
+        fi
+    fi
+
+    chmod -R u+rwX,go-rwx "$profile/sessions" 2>/dev/null || true
+done
+
 echo ""
 echo "Sync complete!"
 echo ""
