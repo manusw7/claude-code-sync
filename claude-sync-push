@@ -123,11 +123,16 @@ for profile in "${CODEX_SYNC_PROFILES[@]}"; do
     echo ""
 done
 
+# Sync config (settings, skills, ...). A conflict leaves that tree untouched
+# but still lets conversations go through.
+CONFIG_RC=0
+sync_all_config "$REPO_DIR" push || CONFIG_RC=$?
+
 # Check if there are changes
 if [ -z "$(git status --porcelain)" ]; then
     echo "No changes to sync."
     cd "$ORIGINAL_DIR"
-    exit 0
+    exit "$CONFIG_RC"
 fi
 
 echo "Changes detected. Committing..."
@@ -155,5 +160,7 @@ fi
 
 echo ""
 echo "Sync complete!"
+[ "$CONFIG_RC" -ne 0 ] && echo "Warning: config had conflicts and was not synced (see above)."
 
 cd "$ORIGINAL_DIR"
+exit "$CONFIG_RC"

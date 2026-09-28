@@ -11,6 +11,9 @@ conversations/
 # Backups (local only, not synced)
 backups/
 
+# Per-machine config sync state (last-synced hashes)
+.sync-state/
+
 # Temporary files
 *.swp
 *.tmp

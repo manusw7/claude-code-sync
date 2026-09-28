@@ -26,6 +26,18 @@ load_config() {
     # everyone running this tool has Codex CLI installed.
     CLAUDE_SYNC_CODEX_PROFILES="${CLAUDE_SYNC_CODEX_PROFILES:-}"
 
+    # Config sync (settings, skills, rules, hooks, ...). Opt-in. Unlike
+    # conversations, config is mirrored with deletes - see lib-config-sync.sh.
+    CLAUDE_SYNC_CONFIG="${CLAUDE_SYNC_CONFIG:-false}"
+    # Paths relative to each Claude profile dir. Missing ones are skipped.
+    CLAUDE_SYNC_CONFIG_PATHS="${CLAUDE_SYNC_CONFIG_PATHS:-settings.json;CLAUDE.md;RTK.md;statusline.sh;keybindings.json;rules;commands;agents;output-styles;hooks;workflows;skills}"
+    # Extra dirs mirrored whole, e.g. ~/.agents (target of skills symlinks).
+    CLAUDE_SYNC_CONFIG_EXTRA_DIRS="${CLAUDE_SYNC_CONFIG_EXTRA_DIRS:-}"
+    # rsync-style patterns never synced. A pattern with / matches a path.
+    CLAUDE_SYNC_CONFIG_EXCLUDES="${CLAUDE_SYNC_CONFIG_EXCLUDES:-.git;node_modules;.venv;venv;__pycache__;*.pyc;.DS_Store;.cc-writes;skills/synced}"
+    # Install plugins listed in the repo that are missing locally, on pull.
+    CLAUDE_SYNC_CONFIG_PLUGINS="${CLAUDE_SYNC_CONFIG_PLUGINS:-true}"
+
     # Load shared config if exists (won't override env vars due to ${:-} syntax)
     if [ -f "$SCRIPT_DIR/.claude-sync-config" ]; then
         source "$SCRIPT_DIR/.claude-sync-config"
@@ -41,6 +53,9 @@ load_config() {
         CLAUDE_SYNC_PROFILES="$CLAUDE_DATA_DIR"
     fi
 }
+
+# Config sync helpers (config_reconcile, sync_all_config, ...)
+source "$(dirname "${BASH_SOURCE[0]}")/lib-config-sync.sh"
 
 # Parse CLAUDE_SYNC_PROFILES into the global array SYNC_PROFILES.
 # Each entry is an absolute path to a Claude data dir.
@@ -119,6 +134,12 @@ validate_config() {
         fi
     done
 
+    if [ "$CLAUDE_SYNC_CONFIG" = "true" ] && ! command -v rsync >/dev/null 2>&1; then
+        echo "Error: config sync needs rsync."
+        echo ""
+        errors=1
+    fi
+
     return $errors
 }
 
@@ -143,6 +164,16 @@ show_config() {
         done
     else
         echo "  Codex sync profiles: none configured"
+    fi
+    if [ "$CLAUDE_SYNC_CONFIG" = "true" ]; then
+        parse_config_lists
+        echo "  Config sync: enabled"
+        echo "    Paths: ${CONFIG_PATHS[*]}"
+        echo "    Extra dirs: ${CONFIG_EXTRA_DIRS[*]:-none}"
+        echo "    Excludes: ${CONFIG_EXCLUDES[*]}"
+        echo "    Plugin install on pull: $CLAUDE_SYNC_CONFIG_PLUGINS"
+    else
+        echo "  Config sync: disabled (set CLAUDE_SYNC_CONFIG=true)"
     fi
     echo "  Backup retention: $CLAUDE_BACKUP_RETENTION_DAYS days"
 }

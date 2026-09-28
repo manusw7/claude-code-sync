@@ -121,6 +121,13 @@ for profile in "${CODEX_SYNC_PROFILES[@]}"; do
     fi
 done
 
+if [ "$CLAUDE_SYNC_CONFIG" = "true" ] && [ -d "$REPO_DIR/.git" ]; then
+    echo ""
+    echo "Config sync (compared with the local repo copy; pull first for the latest):"
+    parse_profiles
+    sync_all_config "$REPO_DIR" status
+fi
+
 echo ""
 echo "Commands:"
 echo "  claude-config      - Configure sync settings"

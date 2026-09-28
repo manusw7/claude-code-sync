@@ -165,9 +165,18 @@ for profile in "${CODEX_SYNC_PROFILES[@]}"; do
     chmod -R u+rwX,go-rwx "$profile/sessions" 2>/dev/null || true
 done
 
+# Sync config (settings, skills, ...) after conversations.
+CONFIG_RC=0
+if [ "$CLAUDE_SYNC_CONFIG" = "true" ]; then
+    echo ""
+    sync_all_config "$REPO_DIR" pull || CONFIG_RC=$?
+fi
+
 echo ""
 echo "Sync complete!"
+[ "$CONFIG_RC" -ne 0 ] && echo "Warning: config had conflicts and was not synced (see above)."
 echo ""
 echo "Note: Restart Claude Code to see the synced conversations."
 
 cd "$ORIGINAL_DIR"
+exit "$CONFIG_RC"
