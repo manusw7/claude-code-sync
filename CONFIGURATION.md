@@ -48,6 +48,12 @@ Settings are loaded in this priority order (highest to lowest):
 - `CLAUDE_SYNC_PROFILES` - Semicolon-separated list of extra Claude data dirs to sync (default: `CLAUDE_DATA_DIR`)
 - `CODEX_DATA_DIR` - Codex CLI data directory (default: `$HOME/.codex`)
 - `CLAUDE_SYNC_CODEX_PROFILES` - Semicolon-separated list of Codex CLI data dirs to sync (default: empty, opt-in)
+- `CLAUDE_SYNC_CONFIG` - Also sync settings, skills, rules, hooks, etc. (default: `false`)
+- `CLAUDE_SYNC_CONFIG_PATHS` - Paths per profile to sync (default: `settings.json;CLAUDE.md;RTK.md;statusline.sh;keybindings.json;rules;commands;agents;output-styles;hooks;workflows;skills`)
+- `CLAUDE_SYNC_CONFIG_EXTRA_DIRS` - Extra dirs mirrored whole, for example `$HOME/.agents` (default: empty)
+- `CLAUDE_SYNC_CONFIG_EXCLUDES` - Patterns never synced (default: `.git;node_modules;.venv;venv;__pycache__;*.pyc;.DS_Store;.cc-writes;skills/synced`)
+- `CLAUDE_SYNC_CONFIG_PLUGINS` - Install missing plugins on pull (default: `true`)
+- `CLAUDE_SYNC_CONFIG_FORCE` - One-off conflict resolution: `local` or `remote`
 
 ## Examples
 
@@ -98,6 +104,22 @@ Permanent in `~/.bashrc`:
 export CLAUDE_SYNC_REMOTE="git@bitbucket.org:myuser/claude-sync.git"
 export PATH="$HOME/claude-code-sync:$PATH"
 ```
+
+### Example 5: Also Syncing Config, Skills and Plugins
+
+```bash
+# .claude-sync-config.local
+CLAUDE_SYNC_CONFIG="true"
+CLAUDE_SYNC_CONFIG_EXTRA_DIRS="$HOME/.agents"
+```
+
+On the second machine the first pull reports a conflict, because it has its own default config. Take the first machine's:
+
+```bash
+CLAUDE_SYNC_CONFIG_FORCE=remote claude-sync-pull
+```
+
+See [README.md](README.md#-config-sync-optional) for how conflicts and deletes work.
 
 ## Viewing Current Configuration
 

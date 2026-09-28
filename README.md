@@ -198,6 +198,34 @@ Only `sessions/`, `history.jsonl`, and `session_index.jsonl` are synced. These a
 
 Codex conversations are stored under `conversations/<basename>/` in the repo, next to Claude's, so e.g. `~/.codex` lands in `conversations/.codex/`.
 
+### ⚙️ Config Sync (optional)
+
+Set `CLAUDE_SYNC_CONFIG="true"` to also sync your setup, not just conversations:
+
+- `settings.json`, `CLAUDE.md`, `RTK.md`, `statusline.sh`, `keybindings.json`
+- `rules/`, `commands/`, `agents/`, `output-styles/`, `hooks/`, `workflows/`, `skills/`
+- Plugins: the list of installed plugins and their marketplaces. On pull, missing ones are installed with `claude plugin install`.
+- Extra dirs such as `~/.agents` via `CLAUDE_SYNC_CONFIG_EXTRA_DIRS`, if your `skills/` has symlinks into it.
+
+Config is **mirrored**, not merged like conversations. Deleting a skill on one machine deletes it on the others. Each machine remembers the state of the last sync, so the tool knows which side changed:
+
+| Changed since last sync | Result |
+|---|---|
+| Only the repo | Applied locally, after a backup to `backups/config-*.tar.gz` |
+| Only this machine | Pushed |
+| Both | Conflict: nothing is copied, and the changed files are listed |
+
+Resolve a conflict by picking a side:
+
+```bash
+CLAUDE_SYNC_CONFIG_FORCE=local  claude-sync-push   # keep this machine's config
+CLAUDE_SYNC_CONFIG_FORCE=remote claude-sync-pull   # take the repo's config
+```
+
+On a second machine the first pull always conflicts, because it has its own default config. Use `CLAUDE_SYNC_CONFIG_FORCE=remote` once.
+
+Never synced: `.credentials.json`, `settings.local.json`, `.claude.json`, `plugins/cache/`, and `.git`, `node_modules`, `.venv` inside skills. `claude-sync-status` shows each config tree as in sync, local changes, remote changes, or conflict.
+
 ### 🔐 Optional Encryption
 
 Enable transparent encryption with git-crypt. See [Requirements](#installing-git-crypt-for-encryption) section for installation on your platform.
@@ -260,6 +288,7 @@ Configuration uses three layers (priority: highest to lowest):
 - `CLAUDE_SYNC_VERBOSE` - Verbose output (default: `false`)
 - `CLAUDE_SYNC_PROFILES` - Extra Claude data dirs to sync, semicolon-separated (default: `CLAUDE_DATA_DIR`)
 - `CLAUDE_SYNC_CODEX_PROFILES` - Codex CLI data dirs to sync, semicolon-separated (default: none — opt-in, see [Codex CLI Sync](#-codex-cli-sync-optional))
+- `CLAUDE_SYNC_CONFIG` - Also sync settings, skills, plugins, etc. (default: `false`, see [Config Sync](#%EF%B8%8F-config-sync-optional))
 
 See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration guide.
 
@@ -299,6 +328,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration guide.
 ### What's Excluded
 
 - `.credentials.json` (never synced)
+- Config (settings, skills, ...) unless `CLAUDE_SYNC_CONFIG=true`. Even then: `settings.local.json`, `.claude.json`, `plugins/cache/`
 - Debug files
 - Local backups
 - For Codex CLI (if enabled): `auth.json`, `*.sqlite*` state/log/queue databases, `config.toml` — see [Codex CLI Sync](#-codex-cli-sync-optional)

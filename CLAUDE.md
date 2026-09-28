@@ -40,6 +40,24 @@ Both `claude-sync-push` and `claude-sync-pull` sync two kinds of profiles, each 
 
 The Codex exclusions matter architecturally, not just for privacy: `auth.json` holds live credentials, and the `*.sqlite`/`*.sqlite-wal`/`*.sqlite-shm` files are Codex's live state/queue/log databases, not one-file-per-conversation like `sessions/`. `rsync --update` can only take "whichever whole file has the newer mtime" — for a shared SQLite file that means one machine's local state silently overwrites the other's instead of merging, which breaks the "conversations only accumulate, never get lost" guarantee this tool is built around. Only sync additional Codex subpaths here if they're genuinely one-file-per-conversation and safe to merge the same way.
 
+**Config Sync** (`lib-config-sync.sh`, opt-in via `CLAUDE_SYNC_CONFIG=true`)
+
+Settings, `CLAUDE.md`, rules, commands, agents, output styles, hooks, workflows and skills, per profile, stored in `conversations/<basename>/config/`. Extra dirs (`CLAUDE_SYNC_CONFIG_EXTRA_DIRS`, e.g. `~/.agents`, the target of `skills/` symlinks) go to `conversations/extra/<basename>/`.
+
+Config can't use the conversation strategy: with `rsync --update` and no deletes, a skill removed on one machine comes back from the other, and `settings.json` edits clobber each other by mtime. So config trees are **mirrored** (`rsync --delete --checksum`) after a three-way check against a per-machine base hash in `.sync-state/` (gitignored):
+
+| local vs repo vs base | Action |
+|---|---|
+| local == repo | in sync |
+| local == base | repo changed: back up local to `backups/config-*.tar.gz`, then repo -> local |
+| repo == base (or repo empty, no base) | local changed: local -> repo (push only) |
+| else | conflict, nothing copied; `CLAUDE_SYNC_CONFIG_FORCE=local\|remote` picks a side |
+
+- `--checksum` matters: git resets mtimes on checkout, so a same-size edit can match on size+mtime and be skipped.
+- Symlinks are synced as links (hashed by target), not followed.
+- Plugins aren't copied (`plugins/cache` is large and rebuildable; `installed_plugins.json` has absolute paths). Push writes `config/plugins.json` (marketplace sources + plugin names); pull runs `claude plugin marketplace add` / `claude plugin install` for missing ones. Additive only. For a non-default profile it sets `CLAUDE_CONFIG_DIR`; never for `~/.claude`, because that also moves `.claude.json`.
+- Never synced: `.credentials.json`, `settings.local.json`, `.claude.json` (OAuth account + per-machine project state), caches, logs.
+
 **Backup System**
 - `claude-backup` - Creates timestamped tar.gz backups
 - `claude-restore` - Restores from backup with safety measures
@@ -122,6 +140,7 @@ Always use these variables from config:
 - `$CLAUDE_SYNC_ENCRYPTION` - Encryption enabled?
 - `$CLAUDE_BACKUP_RETENTION_DAYS` - Backup retention
 - `$CLAUDE_SYNC_VERBOSE` - Verbose output
+- `$CLAUDE_SYNC_CONFIG` and `$CLAUDE_SYNC_CONFIG_*` - Config sync (see Config Sync above)
 
 ### Adding a New Configuration Option
 
@@ -144,6 +163,7 @@ Test on multiple machines:
 - Existing conversations (merge scenario)
 - After encryption enabled
 - With non-standard CLAUDE_DATA_DIR
+- Config sync: two tool copies with separate `.sync-state/`, a local bare remote, and fake profile dirs via env vars. Cover first pull on a second machine (conflict), deletes, same-size edits, concurrent edits, and symlinks.
 
 ### Debugging
 

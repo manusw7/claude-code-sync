@@ -50,3 +50,31 @@ CODEX_DATA_DIR="${CODEX_DATA_DIR:-$HOME/.codex}"
 # the *.sqlite state/queue/cache files and config.toml are never touched.
 # Example: CLAUDE_SYNC_CODEX_PROFILES="$HOME/.codex"
 CLAUDE_SYNC_CODEX_PROFILES="${CLAUDE_SYNC_CODEX_PROFILES:-}"
+
+# --- Config sync (opt-in) ---
+# Also sync settings, CLAUDE.md, rules, commands, agents, output styles,
+# hooks, workflows and skills. Unlike conversations, config is MIRRORED:
+# deletes propagate, and a file changed on two machines since the last sync
+# is a conflict you resolve with CLAUDE_SYNC_CONFIG_FORCE=local|remote.
+CLAUDE_SYNC_CONFIG="${CLAUDE_SYNC_CONFIG:-false}"
+
+# Paths relative to each profile dir (semicolon-separated). Missing ones are
+# skipped. Never add .credentials.json, settings.local.json or .claude.json.
+# CLAUDE_SYNC_CONFIG_PATHS="settings.json;CLAUDE.md;RTK.md;statusline.sh;keybindings.json;rules;commands;agents;output-styles;hooks;workflows;skills"
+
+# Extra dirs mirrored whole, stored under extra/<basename>/ in the repo.
+# Add ~/.agents if your skills/ has symlinks into it (npx skills does this).
+# Example: CLAUDE_SYNC_CONFIG_EXTRA_DIRS="$HOME/.agents"
+CLAUDE_SYNC_CONFIG_EXTRA_DIRS="${CLAUDE_SYNC_CONFIG_EXTRA_DIRS:-}"
+
+# rsync-style patterns never synced. A pattern with a / matches a path, so
+# skills/synced (skills Claude Code syncs from claude.ai itself) is skipped.
+# CLAUDE_SYNC_CONFIG_EXCLUDES=".git;node_modules;.venv;venv;__pycache__;*.pyc;.DS_Store;.cc-writes;skills/synced"
+
+# On pull, install plugins (and add their marketplaces) that another machine
+# has and this one doesn't, via `claude plugin install`. Never uninstalls.
+CLAUDE_SYNC_CONFIG_PLUGINS="${CLAUDE_SYNC_CONFIG_PLUGINS:-true}"
+
+# One-off override to resolve a config conflict (don't set it permanently):
+#   CLAUDE_SYNC_CONFIG_FORCE=local  claude-sync-push   # keep this machine's
+#   CLAUDE_SYNC_CONFIG_FORCE=remote claude-sync-pull   # take the repo's
