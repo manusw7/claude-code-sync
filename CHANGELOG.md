@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `claude-sync-push` now exits with an error when `git push` fails, instead of printing "Sync complete!"
+- Default sync commit message lost its date (`Sync conversations - {date 12:45:11 - host}`): the `}` in `{date}` closed the `${...:-default}` expansion early
 
 ## [1.0.0] - 2026-01-02
 

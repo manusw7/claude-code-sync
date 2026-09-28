@@ -32,7 +32,7 @@ CLAUDE_SYNC_VERBOSE="${CLAUDE_SYNC_VERBOSE:-false}"
 
 # Auto-commit message template
 # Available variables: {date}, {time}, {hostname}
-CLAUDE_SYNC_COMMIT_MSG="${CLAUDE_SYNC_COMMIT_MSG:-Sync conversations - {date} {time} - {hostname}}"
+CLAUDE_SYNC_COMMIT_MSG="${CLAUDE_SYNC_COMMIT_MSG:-"Sync conversations - {date} {time} - {hostname}"}"
 
 # Semicolon-separated list of Claude data dirs to sync, e.g. when you run
 # more than one Claude Code profile on the same machine. Each is stored
