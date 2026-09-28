@@ -72,17 +72,17 @@ for profile in "${SYNC_PROFILES[@]}"; do
 
     if [ -d "$profile/projects" ]; then
         echo "Merging conversations..."
-        rsync -av --update "$profile/projects/" "$DEST/projects/"
+        push_merge_dir "$profile/projects" "$DEST/projects"
     fi
 
     if [ -d "$profile/file-history" ]; then
         echo "Merging file history..."
-        rsync -av --update "$profile/file-history/" "$DEST/file-history/"
+        push_merge_dir "$profile/file-history" "$DEST/file-history"
     fi
 
     if [ -d "$profile/todos" ]; then
         echo "Merging todos..."
-        rsync -av --update "$profile/todos/" "$DEST/todos/"
+        push_merge_dir "$profile/todos" "$DEST/todos"
     fi
 
     if [ -f "$profile/history.jsonl" ]; then
@@ -107,7 +107,7 @@ for profile in "${CODEX_SYNC_PROFILES[@]}"; do
 
     if [ -d "$profile/sessions" ]; then
         echo "Merging sessions..."
-        rsync -av --update "$profile/sessions/" "$DEST/sessions/"
+        push_merge_dir "$profile/sessions" "$DEST/sessions"
     fi
 
     if [ -f "$profile/history.jsonl" ]; then
@@ -150,8 +150,11 @@ git commit -m "$COMMIT_MSG"
 if git remote | grep -q origin; then
     echo "Pushing to remote..."
     git push origin "$CLAUDE_SYNC_BRANCH" || {
-        echo "Warning: Could not push."
-        echo "  You may need to pull first or resolve conflicts."
+        echo ""
+        echo "Error: Could not push. Changes are committed locally only."
+        echo "  Check the git error above (conflicts, file size limits, auth)."
+        cd "$ORIGINAL_DIR"
+        exit 1
     }
 else
     echo ""

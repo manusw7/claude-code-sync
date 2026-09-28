@@ -40,6 +40,11 @@ CLAUDE_SYNC_COMMIT_MSG="${CLAUDE_SYNC_COMMIT_MSG:-Sync conversations - {date} {t
 # Example: CLAUDE_SYNC_PROFILES="$HOME/.claude;$HOME/.claude-work"
 CLAUDE_SYNC_PROFILES="${CLAUDE_SYNC_PROFILES:-}"
 
+# Files larger than this are not pushed and stay on the machine that has
+# them (rsync --max-size syntax: 95M, 1G). GitHub rejects files over 100 MB,
+# which fails the whole push. Set to "" for no limit (e.g. self-hosted git).
+CLAUDE_SYNC_MAX_FILE_SIZE="${CLAUDE_SYNC_MAX_FILE_SIZE-95M}"
+
 # Codex CLI data directory (usually ~/.codex)
 CODEX_DATA_DIR="${CODEX_DATA_DIR:-$HOME/.codex}"
 

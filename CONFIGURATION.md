@@ -48,6 +48,7 @@ Settings are loaded in this priority order (highest to lowest):
 - `CLAUDE_SYNC_PROFILES` - Semicolon-separated list of extra Claude data dirs to sync (default: `CLAUDE_DATA_DIR`)
 - `CODEX_DATA_DIR` - Codex CLI data directory (default: `$HOME/.codex`)
 - `CLAUDE_SYNC_CODEX_PROFILES` - Semicolon-separated list of Codex CLI data dirs to sync (default: empty, opt-in)
+- `CLAUDE_SYNC_MAX_FILE_SIZE` - Files larger than this aren't pushed (default: `95M`, GitHub's limit is 100 MB; empty = no limit)
 - `CLAUDE_SYNC_CONFIG` - Also sync settings, skills, rules, hooks, etc. (default: `false`)
 - `CLAUDE_SYNC_CONFIG_PATHS` - Paths per profile to sync (default: `settings.json;CLAUDE.md;RTK.md;statusline.sh;keybindings.json;rules;commands;agents;output-styles;hooks;workflows;skills`)
 - `CLAUDE_SYNC_CONFIG_EXTRA_DIRS` - Extra dirs mirrored whole, for example `$HOME/.agents` (default: empty)

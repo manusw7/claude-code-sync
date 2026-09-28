@@ -26,6 +26,11 @@ load_config() {
     # everyone running this tool has Codex CLI installed.
     CLAUDE_SYNC_CODEX_PROFILES="${CLAUDE_SYNC_CODEX_PROFILES:-}"
 
+    # Files larger than this are not pushed (rsync --max-size syntax).
+    # GitHub rejects files over 100 MB; git-crypt adds a few bytes.
+    # Empty = no limit.
+    CLAUDE_SYNC_MAX_FILE_SIZE="${CLAUDE_SYNC_MAX_FILE_SIZE-95M}"
+
     # Config sync (settings, skills, rules, hooks, ...). Opt-in. Unlike
     # conversations, config is mirrored with deletes - see lib-config-sync.sh.
     CLAUDE_SYNC_CONFIG="${CLAUDE_SYNC_CONFIG:-false}"
@@ -83,6 +88,23 @@ parse_codex_profiles() {
         entry="${entry%"${entry##*[![:space:]]}"}"
         [ -n "$entry" ] && CODEX_SYNC_PROFILES+=("$entry")
     done
+}
+
+# Merge a conversation dir into the repo, skipping files over
+# CLAUDE_SYNC_MAX_FILE_SIZE (they would make the whole push fail).
+#   $1 source dir   $2 destination dir
+push_merge_dir() {
+    local src="$1" dst="$2" limit=()
+    [ -n "$CLAUDE_SYNC_MAX_FILE_SIZE" ] && limit=(--max-size="$CLAUDE_SYNC_MAX_FILE_SIZE")
+    rsync -av --update "${limit[@]}" "$src/" "$dst/"
+    if [ -n "$CLAUDE_SYNC_MAX_FILE_SIZE" ]; then
+        local big
+        big="$(find "$src" -type f -size +"$CLAUDE_SYNC_MAX_FILE_SIZE" 2>/dev/null)"
+        if [ -n "$big" ]; then
+            echo "Skipped (over $CLAUDE_SYNC_MAX_FILE_SIZE, stays on this machine only):"
+            echo "$big" | sed 's/^/  /'
+        fi
+    fi
 }
 
 # Subdir name within the conversations repo for a given data dir

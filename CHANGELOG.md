@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extra dirs for config sync (`CLAUDE_SYNC_CONFIG_EXTRA_DIRS`), for example `~/.agents`
 - Plugin list sync: missing plugins and marketplaces are installed on pull
 - `claude-sync-status` shows config sync state per profile
+- `CLAUDE_SYNC_MAX_FILE_SIZE` (default `95M`): larger conversation files are skipped and listed instead of failing the push on GitHub
+
+### Fixed
+- `claude-sync-push` now exits with an error when `git push` fails, instead of printing "Sync complete!"
 
 ## [1.0.0] - 2026-01-02
 
